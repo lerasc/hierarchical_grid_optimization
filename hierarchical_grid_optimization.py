@@ -19,6 +19,7 @@ def grid_optimization(  objfunc,
 						max_eval 			=  None,
 						failsave          	=  False,
 						parallel			=  False,
+						full_ret	        =  False,
 						):
 	"""
 	Return value is the value x at which objfunc(x) is minimal (or maximal). This value is determined from a simple
@@ -62,6 +63,11 @@ def grid_optimization(  objfunc,
 
 	:param parallel:		If True, then the multiprocessing library is used. Number of available kernels are detected
 							auotmatically.
+
+	:param full_ret:		If True, return not only the optimum, but also an array of dimension (T, K+1) which contains
+							all the objective evaluations. Here, T is the number of grid-points that have been evaluated
+							and K is the number of variables of the objective function. The last column represents the
+							objective value, while the first K columns are the grid points.
 
 	output:
 	------
@@ -107,11 +113,12 @@ def grid_optimization(  objfunc,
 
 	# initializations
 	####################################################################################################################
-	dim  = len(bounds) 														# number of parameters
-	bnds = bounds.copy() 													# because it will be overwritten below
-	bnds = [(float(lb), float(up)) for (lb,up) in bnds] 					# replace by floats to avoid problems
-	N 	 = len(discretizations)												# number of grid layers
-	fnct = partial( obj_evaluation,											# dont use lambda (cannot be pickled)
+	evals = [] 																# stores all evaluated objective values
+	dim   = len(bounds) 													# number of parameters
+	bnds  = bounds.copy() 													# because it will be overwritten below
+	bnds  = [(float(lb), float(up)) for (lb,up) in bnds] 					# replace by floats to avoid problems
+	N 	  = len(discretizations)											# number of grid layers
+	fnct  = partial( obj_evaluation,										# dont use lambda (cannot be pickled)
 					obj         = objfunc,
 					constraint  = constraint,
 					mimimize    = minimize,
@@ -173,11 +180,20 @@ def grid_optimization(  objfunc,
 
 			vals = [fnct(p) for p in products]			# evaluate obj on all grid points sequentially
 
+		# store all the evaluations
+		################################################################################################################
+		if dim==1:  concat   = np.array(list(zip(products,vals))) 					   # concatenate param and objective
+		else: 		concat   = np.array([ list(p)+[v] for p,v in zip(products,vals) ]) # concatenate param and objective
+		evals  				+= [concat]											       # append to list
+
 		# bad case: all nans over the entire grid
 		################################################################################################################
 		if np.sum(np.isnan(vals))==len(vals):
 
-			return len(bounds)*[np.nan]
+			dummy_ret = len(bounds)*[np.nan]
+
+			if full_ret: return dummy_ret, np.vstack(evals)
+			else:		 return dummy_ret
 
 		# generic case: we have non-nan values, so we determine the minimum/maximum
 		################################################################################################################
@@ -221,7 +237,8 @@ def grid_optimization(  objfunc,
 				
 				bnds[i] = (new_lower,new_upper) # update the search boundaries
 
-	return optarg
+	if full_ret: return optarg, np.vstack(evals)
+	else:		 return optarg
 
 
 def obj_evaluation( x, obj, constraint=None, mimimize=True, failsave=True ):
