@@ -213,22 +213,26 @@ def grid_optimization(  objfunc,
 				optimum_index = list(gridline).index(xopt) 	# find index of minimum argument
 
 				# special case: we have already fixed that parameter at this level, so it remains fixed
-				if(discretizations[l][i]==1):
+				if discretizations[l][i]==1:
 					new_lower = new_upper = gridline[0] 	# = gridline[optimum_index], because it is the only one
 
 				# special case: we want to have only one point at next level
-				elif(discretizations[l+1][i]==1):
+				elif discretizations[l+1][i]==1:
 					new_lower = new_upper = gridline[optimum_index]
 
 				# special case: we are at the left boundary
-				elif(optimum_index==0):
+				elif optimum_index==0:
 					new_lower = gridline[0]
 					new_upper = gridline[1]
 
+					if l==1: print(f'Attention, optimum in first layer falls on left boundary in dimension {i}.')
+
 				# special case: right boundary
-				elif(optimum_index==discretizations[l][i]-1):
+				elif optimum_index==discretizations[l][i]-1:
 					new_lower = gridline[-2]
 					new_upper = gridline[-1]
+
+					if l==1: print(f'Attention, optimum in first layer falls on right boundary in dimension {i}.')
 
 				# generic case: minimum is somewhere in the middle
 				else:
