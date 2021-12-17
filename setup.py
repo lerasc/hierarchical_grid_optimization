@@ -1,9 +1,9 @@
 from setuptools import setup,find_packages
 
 setup(
-    name            =  'hierarchical_GridOpt',
+    name            =  'hierarchical_grid_opt',
     version         =  '1.0.0',
-    packages        = ['hierarchical_GridOpt'], # can also write: find_packages()
+    packages        = ['hierarchical_grid_opt'], # can also write: find_packages()
     url             =  '',
     license         =  '',
     author          ='Sandro C. Lera',
