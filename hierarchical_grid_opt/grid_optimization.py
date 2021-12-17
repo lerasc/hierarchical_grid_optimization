@@ -20,6 +20,7 @@ def grid_optimization(  objfunc,
 						failsave          	=  False,
 						parallel			=  False,
 						full_ret	        =  False,
+						warn 				=  False, 
 						):
 	"""
 	Return value is the value x at which objfunc(x) is minimal (or maximal). This value is determined from a simple
@@ -68,6 +69,8 @@ def grid_optimization(  objfunc,
 							all the objective evaluations. Here, T is the number of grid-points that have been evaluated
 							and K is the number of variables of the objective function. The last column represents the
 							objective value, while the first K columns are the grid points.
+
+	:param warn:			If True, print a warning if optimum is found on a boundary. 
 
 	output:
 	------
@@ -225,14 +228,16 @@ def grid_optimization(  objfunc,
 					new_lower = gridline[0]
 					new_upper = gridline[1]
 
-					if l==1: print(f'Attention, optimum in first layer falls on left boundary in dimension {i}.')
+					if warn and l==1: 
+						print(f'Attention, optimum in first layer falls on left boundary in dimension {i}.')
 
 				# special case: right boundary
 				elif optimum_index==discretizations[l][i]-1:
 					new_lower = gridline[-2]
 					new_upper = gridline[-1]
 
-					if l==1: print(f'Attention, optimum in first layer falls on right boundary in dimension {i}.')
+					if warn and l==1: 
+						print(f'Attention, optimum in first layer falls on right boundary in dimension {i}.')
 
 				# generic case: minimum is somewhere in the middle
 				else:
