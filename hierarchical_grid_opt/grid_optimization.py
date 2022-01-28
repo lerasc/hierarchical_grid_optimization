@@ -246,6 +246,8 @@ def grid_optimization(  objfunc,
 				
 				bnds[i] = (new_lower,new_upper) # update the search boundaries
 
+	if dim==1: optarg = optarg[0] # handle 1d special case
+
 	if full_ret: return optarg, np.vstack(evals)
 	else:		 return optarg
 
