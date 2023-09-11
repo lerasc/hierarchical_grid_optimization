@@ -1,12 +1,13 @@
 
 import numpy as np
-import multiprocessing
 
 from math      		import log
 from numbers   		import Number 
 from functools 		import partial
 from itertools 		import product
 from numpy.random 	import choice
+from tqdm 			import tqdm
+from joblib     	import Parallel, delayed, cpu_count
 
 
 def grid_optimization(  objfunc,
@@ -19,6 +20,7 @@ def grid_optimization(  objfunc,
 						max_eval 			=  None,
 						failsave          	=  False,
 						parallel			=  False,
+						verbose 			=  False, 
 						full_ret	        =  False,
 						warn 				=  False, 
 						):
@@ -64,6 +66,8 @@ def grid_optimization(  objfunc,
 
 	:param parallel:		If True, then the multiprocessing library is used. Number of available kernels are detected
 							auotmatically.
+
+	:param verbose:			If True, print progress bar.
 
 	:param full_ret:		If True, return not only the optimum, but also an array of dimension (T, K+1) which contains
 							all the objective evaluations. Here, T is the number of grid-points that have been evaluated
@@ -113,7 +117,6 @@ def grid_optimization(  objfunc,
 
 	if max_eval is not None: assert isinstance(max_eval,int), 'max_eval must be None or integer'
 
-
 	# initializations
 	####################################################################################################################
 	evals = [] 																# stores all evaluated objective values
@@ -121,13 +124,12 @@ def grid_optimization(  objfunc,
 	bnds  = bounds.copy() 													# because it will be overwritten below
 	bnds  = [(float(lb), float(up)) for (lb,up) in bnds] 					# replace by floats to avoid problems
 	N 	  = len(discretizations)											# number of grid layers
-	fnct  = partial( obj_evaluation,										# dont use lambda (cannot be pickled)
+	fnct  = partial(obj_evaluation,											# dont use lambda (cannot be pickled)
 					obj         = objfunc,
 					constraint  = constraint,
 					mimimize    = minimize,
 					failsave    = failsave,
 					)
-
 
 	# adjust the scale argument for consistent internal use
 	####################################################################################################################
@@ -151,10 +153,8 @@ def grid_optimization(  objfunc,
 		# form all parameter combinations, i.e. all grid points to evaluate
 		################################################################################################################
 		if max_eval is None: 
-			if dim==1: 									# special case: 1d optimization problem			
-				products = list(gridpoints[0])
-			else: 										# generic case
-				products = list(product(*gridpoints)) 	# all combinations
+			if dim==1:  products = list( gridpoints[0] )		# special case: 1d optimization problem			
+			else: 		products = list( product(*gridpoints) ) # generic case
 
 		# if generating and/or evaluation all combinations is too costly, just select a subset of them
 		################################################################################################################
@@ -171,17 +171,9 @@ def grid_optimization(  objfunc,
 
 		# evaluate all grid points 
 		################################################################################################################
-		if parallel:
-
-			nc   = multiprocessing.cpu_count() 			# number of cores available
-			pool = multiprocessing.Pool(processes=nc) 	# initialize multiprocessing instance
-			vals = list(pool.map(fnct,products)) 		# evaluate obj on all grid points in parallel
-			pool.close()								# close multiprocessing instance
-			pool.join()									# close multiprocessing instance
-
-		else:
-
-			vals = [fnct(p) for p in products]			# evaluate obj on all grid points sequentially
+		nc   =  cpu_count()-1 if parallel else 1  						      		# how many cores to use
+		pf   =  Parallel( n_jobs=nc )     		    	 				  	  		# function for parallelization 
+		vals =  pf( delayed(fnct)(p) for p in tqdm(products, disable=not verbose) ) # execute across dates in parallel			
 
 		# store all the evaluations
 		################################################################################################################
@@ -194,7 +186,6 @@ def grid_optimization(  objfunc,
 		if np.sum(np.isnan(vals))==len(vals):
 
 			dummy_ret = len(bounds)*[np.nan]
-
 			if full_ret: return dummy_ret, np.vstack(evals)
 			else:		 return dummy_ret
 
