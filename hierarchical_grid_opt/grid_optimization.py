@@ -19,7 +19,7 @@ def grid_optimization(  objfunc,
 						minimize          	=  True,
 						max_eval 			=  None,
 						failsave          	=  False,
-						parallel			=  False,
+						n_jobs				=  1,
 						verbose 			=  False, 
 						full_ret	        =  False,
 						warn 				=  False, 
@@ -64,8 +64,7 @@ def grid_optimization(  objfunc,
 	:param failsave:		If True, NaN is returned for every obj call objfunc(x) that raises an error. This is useful
 							to avoid the entire program from crashing, if objfunc happens to not be defined everywhere.
 
-	:param parallel:		If True, then the multiprocessing library is used. Number of available kernels are detected
-							auotmatically.
+	:param n_jobs:			How many cores to use in multi-processing. 
 
 	:param verbose:			If True, print progress bar.
 
@@ -171,8 +170,7 @@ def grid_optimization(  objfunc,
 
 		# evaluate all grid points 
 		################################################################################################################
-		nc   =  cpu_count()-1 if parallel else 1  						      		# how many cores to use
-		pf   =  Parallel( n_jobs=nc )     		    	 				  	  		# function for parallelization 
+		pf   =  Parallel( n_jobs=n_jobs )     		    	 		 		  		# function for parallelization 
 		vals =  pf( delayed(fnct)(p) for p in tqdm(products, disable=not verbose) ) # execute across dates in parallel			
 
 		# store all the evaluations
